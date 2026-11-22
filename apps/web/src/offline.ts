@@ -1,13 +1,14 @@
+import {habitInputError,habitEntryError,habitView} from '../../api/src/habits-domain';
 import {getWorkout,workoutKeys,workoutPreferenceError,workoutSnapshot} from '../../api/src/workouts';
 import {signDetails} from '../../api/src/sign-design';
 import {fixtures} from '../../api/src/fixtures';
 import {defaults,normalizePreferences,planPreferences,ingredientPreferenceError,rankMeals,cookingPool,mealReason,eligible,today,addDays,weekStart,stats,groceries,reconcileGroceries,isDate} from '../../api/src/domain';
 import {renderOfflineSign} from './offline-sign';
 const KEY='lightnook-offline-v1';
-type Store={schemaVersion:1;revision:number;user:any;loggedIn:boolean;preferences:any;preferencesRevision:number;meals:any[];plans:any[];items:any[];records:any[];favorites:string[];pools:any[];draws:any[];groceries:any[];reports:any[];assets:any[];idempotency:Record<string,any>};
-const initial=():Store=>({schemaVersion:1,revision:0,user:null,loggedIn:false,preferences:{...defaults},preferencesRevision:0,meals:[],plans:[],items:[],records:[],favorites:[],pools:[],draws:[],groceries:[],reports:[],assets:[],idempotency:{}});
+type Store={schemaVersion:1;revision:number;user:any;loggedIn:boolean;preferences:any;preferencesRevision:number;meals:any[];plans:any[];items:any[];records:any[];favorites:string[];pools:any[];draws:any[];groceries:any[];reports:any[];assets:any[];habits:any[];habitEntries:any[];idempotency:Record<string,any>};
+const initial=():Store=>({schemaVersion:1,revision:0,user:null,loggedIn:false,preferences:{...defaults},preferencesRevision:0,meals:[],plans:[],items:[],records:[],favorites:[],pools:[],draws:[],groceries:[],reports:[],assets:[],habits:[],habitEntries:[],idempotency:{}});
 function error(status:number,code:string,message:string):never{throw Object.assign(new Error(message),{status,code});}
-function read():Store{const raw=localStorage.getItem(KEY);if(!raw)return initial();try{const s=JSON.parse(raw);if(s.schemaVersion!==1)throw Error();s.preferences=normalizePreferences(s.preferences);return s;}catch{error(422,'LOCAL_DATA_INVALID','本机数据无法读取。请先导出原始备份，再尝试恢复，不会自动清空。');}}
+function read():Store{const raw=localStorage.getItem(KEY);if(!raw)return initial();try{const s=JSON.parse(raw);if(s.schemaVersion!==1)throw Error();s.preferences=normalizePreferences(s.preferences);for(const key of ['habits','habitEntries']){if(s[key]===undefined)s[key]=[];if(!Array.isArray(s[key]))throw Error();}return s;}catch{error(422,'LOCAL_DATA_INVALID','本机数据无法读取。请先导出原始备份，再尝试恢复，不会自动清空。');}}
 function persist(s:Store,expectedRevision?:number){if(expectedRevision!==undefined){const raw=localStorage.getItem(KEY),actual=raw?JSON.parse(raw).revision:0;if(actual!==expectedRevision)error(409,'REVISION_CONFLICT','另一个页面已更新本机数据，请刷新后再试');}try{s.revision++;localStorage.setItem(KEY,JSON.stringify(s));}catch{error(507,'STORAGE_FULL','本机存储空间不足，记录尚未保存。请先导出备份并清理图片后重试。');}}
 const id=()=>crypto.randomUUID();
 const publicMeals=fixtures.map(m=>({...m,id:`local-${m.slug}-v1`,mealId:`local-${m.slug}`,version:1,meal:{id:`local-${m.slug}`,ownerId:null,published:true}}));
@@ -34,6 +35,16 @@ async function dispatch(s:Store,path:string,method:string,b:any,options:RequestI
  if(p==='/me'&&method==='GET')return {...s.user,preferences:s.preferences,preferencesRevision:s.preferencesRevision,activePlan:s.plans.find(p=>p.status==='ACTIVE')||null,demo:true,offline:true};
  if(p==='/me'&&method==='DELETE'){Object.assign(s,initial());return {ok:true};}
  if(p==='/me/data-export')return {app:'lightnook',schemaVersion:1,exportedAt:new Date().toISOString(),data:s};
+ if(p==='/habits'&&method==='GET')return s.habits.map(h=>habitView(h,s.habitEntries.filter(e=>e.habitId===h.id)));
+ if(p==='/habits'&&method==='POST'){const issue=habitInputError(b,true);if(issue)error(422,'INVALID_HABIT',issue);if(s.habits.length>=100)error(422,'HABIT_LIMIT','最多保留 100 个事项');const habit={id:id(),userId:s.user.id,title:b.title.trim(),icon:b.icon||'plant',color:b.color||'blue',archived:false,revision:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};s.habits.push(habit);return habit;}
+ const habitMatch=p.match(/^\/habits\/([^/]+)(?:\/entries\/([^/]+))?$/);
+ if(habitMatch){const h=s.habits.find(h=>h.id===habitMatch[1]);if(!h)error(404,'NOT_FOUND','事项不存在');const date=habitMatch[2];
+  if(!date){if(method==='GET')return habitView(h,s.habitEntries.filter(e=>e.habitId===h.id),true);if(method==='PATCH'){const issue=habitInputError(b);if(issue)error(422,'INVALID_HABIT',issue);revision(h,b.expectedRevision);for(const key of ['title','icon','color','archived'])if(b[key]!==undefined)h[key]=key==='title'?b[key].trim():b[key];h.revision++;h.updatedAt=new Date().toISOString();return h;}}
+  else{const old=s.habitEntries.find(e=>e.habitId===h.id&&e.date===date);
+   if(method==='PUT'){const issue=habitEntryError(date,b);if(issue)error(422,'INVALID_HABIT_ENTRY',issue);if(h.archived)error(409,'HABIT_ARCHIVED','恢复事项后再继续记录');if((old?.revision||0)!==b.expectedRevision)error(409,'REVISION_CONFLICT','这天的记录已变化，请刷新');if((b.photos||[]).some((id:string)=>!s.assets.some(a=>a.id===id&&a.purpose==='PHOTO')))error(403,'INVALID_PHOTO','照片不可用');const e=old||{id:id(),habitId:h.id,date,revision:0,createdAt:new Date().toISOString()};Object.assign(e,{note:(b.note||'').trim(),photos:b.photos||[],revokedAt:null,revision:e.revision+1,updatedAt:new Date().toISOString()});if(!old)s.habitEntries.push(e);return e;}
+   if(method==='DELETE'){if(!old)error(404,'NOT_FOUND','这天还没有记录');revision(old,b.expectedRevision);if(!old.revokedAt){old.revokedAt=new Date().toISOString();old.revision++;old.updatedAt=new Date().toISOString();}return old;}
+  }
+ }
  if(p==='/me/preferences'&&method==='PUT'){
    if(s.preferencesRevision!==b.expectedRevision)error(409,'REVISION_CONFLICT','偏好已变化，请刷新后确认');
    if(!['home','mixed','outside'].includes(b.scene)||!Number.isFinite(b.minutes)||b.minutes<5||b.minutes>120||!Number.isFinite(b.budget)||b.budget<500)error(422,'INVALID_INPUT','偏好设置不正确');
@@ -104,10 +115,14 @@ export async function offlineApi(path:string,options:RequestInit={}):Promise<any
 export async function importBackup(text:string){
  if(text.length>8*1024*1024)error(422,'BACKUP_TOO_LARGE','备份过大，请检查文件');let b:any;try{b=JSON.parse(text);}catch{error(422,'INVALID_BACKUP','这不是有效的 JSON 备份');}
  if(b.app!=='lightnook'||b.schemaVersion!==1||b.data?.schemaVersion!==1)error(422,'INVALID_BACKUP','备份格式或版本不受支持');const s=b.data as Store;
- for(const key of ['meals','plans','items','records','favorites','pools','draws','groceries','reports','assets'])if(!Array.isArray((s as any)[key])||(s as any)[key].length>10000)error(422,'INVALID_BACKUP','备份的数据结构不完整');
+ if(s.habits===undefined)s.habits=[];if(s.habitEntries===undefined)s.habitEntries=[];
+ for(const key of ['meals','plans','items','records','favorites','pools','draws','groceries','reports','assets','habits','habitEntries'])if(!Array.isArray((s as any)[key])||(s as any)[key].length>10000)error(422,'INVALID_BACKUP','备份的数据结构不完整');
  if(!s.user?.id||typeof s.user.name!=='string'||!Array.isArray(s.preferences?.allergens)||!Array.isArray(s.preferences?.dislikes)||!Array.isArray(s.preferences?.workoutDays))error(422,'INVALID_BACKUP','备份缺少用户与偏好数据');
  if(s.assets.some(a=>typeof a.url!=='string'||!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(a.url)))error(422,'INVALID_BACKUP','备份包含不支持的图片格式');
  if(s.items.some(i=>!s.plans.some(p=>p.id===i.planId)||!isDate(i.date)||!i.snapshot||typeof i.snapshot.title!=='string'))error(422,'INVALID_BACKUP','备份中的任务关系不完整');
  if(s.records.some(r=>!isDate(r.date)||!r.actual||!s.items.some(i=>i.id===r.itemId)))error(422,'INVALID_BACKUP','备份中的记录关系不完整');
+ if(s.habits.some(h=>typeof h.id!=='string'||!/^[a-zA-Z0-9-]{1,128}$/.test(h.id)||h.userId!==s.user.id||!Number.isInteger(h.revision)||h.revision<1||habitInputError(h,true)))error(422,'INVALID_BACKUP','养成事项格式不正确');
+ if(new Set(s.habits.map(h=>h.id)).size!==s.habits.length||new Set(s.habitEntries.map(e=>e.habitId+'|'+e.date)).size!==s.habitEntries.length)error(422,'INVALID_BACKUP','养成记录有重复日期或事项');
+ if(s.habitEntries.some(e=>typeof e.id!=='string'||!s.habits.some(h=>h.id===e.habitId)||!Number.isInteger(e.revision)||e.revision<1||habitEntryError(e.date,{...e,expectedRevision:e.revision})||(e.photos||[]).some((id:string)=>!s.assets.some(a=>a.id===id&&a.purpose==='PHOTO'))))error(422,'INVALID_BACKUP','养成记录或照片关系不完整');
  const issue=ingredientPreferenceError(s.preferences)||workoutPreferenceError(s.preferences);if(issue)error(422,'INVALID_BACKUP',issue);s.preferences=normalizePreferences(s.preferences);s.idempotency={};s.loggedIn=true;persist(s);
 }

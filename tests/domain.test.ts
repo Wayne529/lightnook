@@ -1,3 +1,5 @@
+import {habitProgress,habitInputError,habitEntryError,habitView} from '../apps/api/src/habits-domain';
+import {habitSignSvg} from '../apps/api/src/habit-sign';
 import {getWorkout,workoutSnapshot,workoutPreferenceError,workoutKeys} from '../apps/api/src/workouts';
 import {signDetails,signSvg} from '../apps/api/src/sign-design';
 import {ingredientCategory} from '../apps/api/src/ingredients';
@@ -43,3 +45,14 @@ describe('每份计划的食材来源',()=>{
 
 
 describe('多种运动选择',()=>{it('常见运动包含用户指定种类，并按偏好轮换',()=>{expect(workoutKeys).toEqual(expect.arrayContaining(['walk','run','swim','badminton','hike']));expect(workoutSnapshot(['swim','badminton'],0).title).toBe('游泳');expect(workoutSnapshot(['swim','badminton'],1).title).toBe('羽毛球');expect(workoutSnapshot(['swim','badminton'],2).title).toBe('游泳');});it('旧偏好默认散步，未知类型不允许保存',()=>{expect(normalizePreferences({}).workoutTypes).toEqual(['walk']);expect(workoutPreferenceError({workoutDays:[1],workoutTypes:[]})).toBeTruthy();expect(workoutPreferenceError({workoutTypes:['unknown']})).toBeTruthy();expect(workoutPreferenceError({workoutDays:[],workoutTypes:[]})).toBeNull();expect(getWorkout('swim').title).toBe('游泳');});});
+
+
+describe('通用养成统计',()=>{
+ const entry=(date:string,extra:any={})=>({id:date,date,note:'',photos:[],revision:1,...extra});
+ it('只按有效记录日期累计，重复、撤销和未来记录不计数',()=>{const p=habitProgress([entry('2026-11-20'),entry('2026-11-20'),entry('2026-11-21',{revokedAt:'x'}),entry('2026-11-23')],'2026-11-22');expect(p.totalDays).toBe(1);expect(p.firstDate).toBe('2026-11-20');});
+ it('今天未记时保留连续到昨天的天数，断档不清空累计',()=>{const entries=[entry('2026-11-19'),entry('2026-11-20'),entry('2026-11-21')];expect(habitProgress(entries,'2026-11-22').streak).toBe(3);expect(habitProgress(entries,'2026-11-23').streak).toBe(0);expect(habitProgress(entries,'2026-11-23').totalDays).toBe(3);});
+ it('补记填补间断，更正不会增加天数，撤销后重算',()=>{const entries=[entry('2026-11-19'),entry('2026-11-21'),entry('2026-11-22')];expect(habitProgress(entries,'2026-11-22').streak).toBe(2);entries.push(entry('2026-11-20'));expect(habitProgress(entries,'2026-11-22').streak).toBe(4);entries[1].revokedAt='now';expect(habitProgress(entries,'2026-11-22').streak).toBe(1);expect(habitProgress(entries,'2026-11-22').totalDays).toBe(3);});
+ it('事项创建日期不会充当坚持天数，并生成正确里程碑',()=>{const h=habitView({title:'摄影',createdAt:'2020-01-01'},[]);expect(h.progress.totalDays).toBe(0);expect(h.progress.firstDate).toBeNull();const entries=Array.from({length:7},(_,i)=>entry(addDays('2026-11-16',i)));expect(habitProgress(entries,'2026-11-22').milestone).toBe(7);expect(habitProgress(entries,'2026-11-22').nextMilestone).toBe(30);});
+ it('记录支持任意事项，拒绝空名、无效日期和重复照片',()=>{expect(habitInputError({title:'练吉他',icon:'music',color:'sage'},true)).toBeNull();expect(habitInputError({title:' '},true)).toBeTruthy();expect(habitEntryError('2026-11-23',{expectedRevision:0},'2026-11-22')).toBeTruthy();expect(habitEntryError('2026-02-30',{expectedRevision:0},'2026-11-22')).toBeTruthy();expect(habitEntryError('2026-11-22',{expectedRevision:0,photos:['a','a']},'2026-11-22')).toBeTruthy();});
+ it('坚持签默认不带私人成果，勾选后转义文字，不含照片地址',()=>{const h={title:'<阅读>',color:'blue',progress:habitProgress([entry('2026-11-22')],'2026-11-22'),entries:[entry('2026-11-22',{note:'私人文字<script>',photos:['secret-photo']})]};expect(habitSignSvg(h)).not.toContain('私人文字');expect(habitSignSvg(h,true)).toContain('&lt;script&gt;');expect(habitSignSvg(h,true)).not.toContain('secret-photo');expect(habitSignSvg(h)).toContain('&lt;阅读&gt;');});
+});

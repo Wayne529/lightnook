@@ -1,3 +1,4 @@
+import {habitIcons,habitColors} from './habits-domain';
 import {workoutKeys} from './workouts';
 import { IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, MaxLength, Matches, ArrayMaxSize } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -55,4 +56,22 @@ export class CustomMealDto {
   @ApiProperty() @IsInt() @Min(0) @Max(180) minutes!: number;
   @ApiProperty() @IsInt() @Min(0) @Max(100000) costCents!: number;
   @ApiProperty() @IsArray() @IsIn(['breakfast','lunch','dinner'],{each:true}) slots!: string[];
+}
+
+export class HabitCreateDto {
+ @ApiProperty() @IsString() @MaxLength(30) title!:string;
+ @ApiPropertyOptional({enum:habitIcons}) @IsOptional() @IsIn(habitIcons) icon?:string;
+ @ApiPropertyOptional({enum:habitColors}) @IsOptional() @IsIn(habitColors) color?:string;
+}
+export class HabitPatchDto {
+ @ApiProperty() @IsInt() @Min(1) expectedRevision!:number;
+ @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(30) title?:string;
+ @ApiPropertyOptional({enum:habitIcons}) @IsOptional() @IsIn(habitIcons) icon?:string;
+ @ApiPropertyOptional({enum:habitColors}) @IsOptional() @IsIn(habitColors) color?:string;
+ @ApiPropertyOptional() @IsOptional() @IsBoolean() archived?:boolean;
+}
+export class HabitEntryDto {
+ @ApiProperty() @IsInt() @Min(0) expectedRevision!:number;
+ @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) note?:string;
+ @ApiPropertyOptional({type:[String]}) @IsOptional() @IsArray() @IsString({each:true}) @ArrayMaxSize(4) @MaxLength(128,{each:true}) photos?:string[];
 }
