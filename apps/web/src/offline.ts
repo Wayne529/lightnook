@@ -1,3 +1,4 @@
+import {signDetails} from '../../api/src/sign-design';
 import {fixtures} from '../../api/src/fixtures';
 import {defaults,normalizePreferences,ingredientPreferenceError,rankMeals,cookingPool,mealReason,eligible,today,addDays,weekStart,stats,groceries,reconcileGroceries,isDate} from '../../api/src/domain';
 import {renderOfflineSign} from './offline-sign';
@@ -81,7 +82,7 @@ async function dispatch(s:Store,path:string,method:string,b:any,options:RequestI
  match=p.match(/^\/media\/([^/]+)\/access$/);if(match){const a=s.assets.find(a=>a.id===match![1]);if(!a)error(404,'NOT_FOUND','图片不存在');return {url:a.url};}
  if(p==='/sign-reports'){
    checkDate(b.date);if(b.date>today())error(422,'FUTURE_REPORT','未来的日子还没有记录');const start=b.kind==='week'?weekStart(b.date):b.date,end=b.kind==='week'?addDays(start,6):b.date,validPlans=s.plans.filter(p=>['ACTIVE','ENDED'].includes(p.status)).map(p=>p.id),items=s.items.filter(i=>validPlans.includes(i.planId)&&i.date>=start&&i.date<=end&&i.date<=today()),records=activeRecords(s).filter(r=>r.date>=start&&r.date<=end);
-   const snapshot={...stats(items,records),start,end,kind:b.kind,template:b.template||'botanical',photoAssetId:b.photoAssetId,partial:end>today(),templateVersion:'1'};const hash=JSON.stringify({snapshot,items:items.map(i=>[i.id,i.revision]),records:records.map(r=>[r.id,r.revision])});let r=s.reports.find(r=>r.hash===hash);if(!r){r={id:id(),kind:b.kind,startDate:start,endDate:end,snapshot,hash,status:'READY',stale:false,createdAt:new Date().toISOString()};s.reports.push(r);}return {...r};
+   const snapshot={...stats(items,records),...signDetails(items,records,start,end),start,end,kind:b.kind,template:b.template||'botanical',photoAssetId:b.photoAssetId,partial:end>today(),templateVersion:'2'};const hash=JSON.stringify({snapshot,items:items.map(i=>[i.id,i.revision]),records:records.map(r=>[r.id,r.revision])});let r=s.reports.find(r=>r.hash===hash);if(!r){r={id:id(),kind:b.kind,startDate:start,endDate:end,snapshot,hash,status:'READY',stale:false,createdAt:new Date().toISOString()};s.reports.push(r);}return {...r};
  }
  match=p.match(/^\/sign-reports\/([^/]+)$/);if(match)return reportView(s,s.reports.find(r=>r.id===match![1]));
  if(p==='/me/signs')return Promise.all([...s.reports].reverse().slice(0,30).map(r=>reportView(s,r)));

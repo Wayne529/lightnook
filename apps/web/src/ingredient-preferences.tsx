@@ -1,29 +1,23 @@
+import {ingredientGroups as groups,ingredientCategory} from '../../api/src/ingredients';
 import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {api} from './api';
 import {Button,Choice,Section} from './ui';
 import {eligible,ingredientKey,ingredientNames,type Preferences} from '../../api/src/domain';
 
-const groups=[
-  ['蛋白质',['鸡胸肉','鸡蛋','豆腐','牛肉','鱼肉','鲜虾']],
-  ['主食',['糙米饭','面条','燕麦','全麦吐司','红薯','小米']],
-  ['蔬果',['西兰花','番茄','蔬菜','水果','土豆','胡萝卜','南瓜','香菇','白菜','彩椒']],
-  ['奶豆与调味',['原味酸奶','豆乳','牛奶','食用油','盐','酱油']],
-] as const;
-
 function IngredientPicker({id,title,description,value,onChange,catalog}:{id:string;title:string;description:string;value:string[];onChange:(names:string[])=>void;catalog:string[]}){
-  const [text,setText]=useState(''),[expanded,setExpanded]=useState(false),[error,setError]=useState('');
+  const [text,setText]=useState(''),[expanded,setExpanded]=useState(false),[error,setError]=useState(''),[category,setCategory]=useState('蔬菜类');
   const has=(name:string)=>value.some(v=>ingredientKey(v)===ingredientKey(name));
   const toggle=(name:string)=>{setError('');if(has(name))onChange(value.filter(v=>ingredientKey(v)!==ingredientKey(name)));else if(value.length>=60)setError('最多添加 60 项食材');else onChange([...value,name]);};
   const add=()=>{const name=text.trim();if(!name||name.length>20){setError('请输入 1–20 个字的食材名');return;}if(!has(name))toggle(name);setText('');};
   return <section className="ingredient-picker" aria-labelledby={id+'-heading'}>
     <h3 id={id+'-heading'}>{title}<small>{value.length} 项</small></h3><p className="tiny">{description}</p>
-    <div className="tag-grid ingredient-selected">{value.length?value.map(name=><button className="chip selected" type="button" key={name} aria-label={'移除'+title+'：'+name} onClick={()=>toggle(name)}>{name} ×</button>):<span className="tiny">尚未选择</span>}</div>
+    <div className="ingredient-selected-groups">{value.length?groups.map(([group])=>{const selected=value.filter(name=>ingredientCategory(name)===group);return selected.length?<div key={group}><span className="ingredient-category-label">{group}</span><div className="tag-grid ingredient-selected">{selected.map(name=><button className="chip selected" type="button" key={name} aria-label={'移除'+title+'：'+name} onClick={()=>toggle(name)}>{name} ×</button>)}</div></div>:null;}):<span className="tiny">尚未选择</span>}</div>
     <label htmlFor={id+'-input'} className="field-label">搜索或添加食材</label>
     <div className="inline"><input id={id+'-input'} value={text} maxLength={20} placeholder="输入食材名，例如：番茄" onChange={e=>{setText(e.target.value);setError('');}} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();add();}}}/><Button type="button" secondary onClick={add}>添加</Button></div>
     {error&&<p className="tiny danger" role="alert">{error}</p>}
     <button type="button" className="text-button" aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}>{expanded?'收起常见食材':'从常见食材中选择'}</button>
-    {(expanded||text.trim())&&<div className="ingredient-suggestions">{groups.map(([group,names])=>{const options=[...new Set([...names,...(group==='蔬果'?catalog.filter(n=>!groups.some(([,g])=>(g as readonly string[]).includes(n))):[])])].filter(n=>!text.trim()||ingredientKey(n).includes(ingredientKey(text)));return options.length?<div key={group}><p className="tiny">{group}</p><div className="tag-grid">{options.map(name=><Choice key={name} selected={has(name)} onClick={()=>toggle(name)}>{name}</Choice>)}</div></div>:null;})}</div>}
+    {(expanded||text.trim())&&<div className="ingredient-suggestions">{!text.trim()&&<div className="ingredient-category-tabs" role="group" aria-label={title+'分类'}>{groups.map(([group])=><Choice key={group} selected={category===group} onClick={()=>setCategory(group)}>{group}</Choice>)}</div>}{groups.filter(([group])=>text.trim()||group===category).map(([group,names])=>{const options=[...new Map([...names,...catalog,...value].filter(n=>ingredientCategory(n)===group).map(n=>[ingredientKey(n),n])).values()].filter(n=>!text.trim()||ingredientKey(n).includes(ingredientKey(text)));return options.length?<div key={group}><p className="tiny">{group}</p><div className="tag-grid">{options.map(name=><Choice key={name} selected={has(name)} onClick={()=>toggle(name)}>{name}</Choice>)}</div></div>:(!text.trim()?<p className="tiny" key={group}>还没有这类食材，可在上方添加。</p>:null);})}</div>}
   </section>;
 }
 

@@ -1,10 +1,7 @@
+import {signSvg} from '../../api/src/sign-design';
 export async function renderOfflineSign(s:any,photo?:string){
- await document.fonts.ready;const canvas=document.createElement('canvas');canvas.width=1026;canvas.height=1683;const ctx=canvas.getContext('2d')!;ctx.scale(3,3);ctx.fillStyle='#EEE9DF';ctx.fillRect(0,0,342,561);
- const text=(x:number,y:number,value:unknown,size=14,color='#2D3C43',serif=false)=>{ctx.fillStyle=color;ctx.font=`${size}px ${serif?'"Songti SC", "Noto Serif CJK SC", serif':'"PingFang SC", "Noto Sans CJK SC", sans-serif'}`;ctx.fillText(String(value),x,y,300);};
- const line=(y:number)=>{ctx.beginPath();ctx.moveTo(24,y);ctx.lineTo(318,y);ctx.strokeStyle='#D9D2C6';ctx.lineWidth=1;ctx.stroke();};
- const week=s.kind==='week';text(24,34,week?'WEEKLY JOURNAL':'DAILY JOURNAL',10,'#626968');line(49);text(24,77,week?`${s.start} — ${s.end}`:s.start,11,'#626968');text(24,127,week?'每一份认真，':'今天，也有',28,'#2D3C43',true);text(24,166,week?'都有回响。':'好好照顾自己。',28,'#2D3C43',true);
- if(s.template==='photo'&&photo){const image=new Image();image.src=photo;await image.decode();const ratio=Math.max(290/image.width,150/image.height),w=image.width*ratio,h=image.height*ratio;ctx.save();ctx.beginPath();ctx.rect(26,200,290,150);ctx.clip();ctx.drawImage(image,26+(290-w)/2,200+(150-h)/2,w,h);ctx.restore();}
- else if(s.template==='minimal'){ctx.beginPath();ctx.arc(235,265,60,0,Math.PI*2);ctx.strokeStyle='#D0C7B9';ctx.stroke();ctx.beginPath();ctx.moveTo(175,265);ctx.lineTo(295,265);ctx.moveTo(235,205);ctx.lineTo(235,325);ctx.strokeStyle='#BD967C';ctx.stroke();}
- else{ctx.save();ctx.translate(169,185);ctx.scale(.9,.9);ctx.strokeStyle='#BD967C';ctx.lineWidth=1.1;ctx.stroke(new Path2D('M24 154C53 119 61 72 67 12M45 125C9 121 5 95 7 84 35 90 48 104 45 125ZM56 92C84 94 103 74 107 55 80 57 62 73 56 92ZM62 60C39 52 35 33 39 17 61 26 68 43 62 60ZM66 33C82 27 85 12 82 1 67 7 62 21 66 33Z'));ctx.restore();}
- if(s.template!=='photo'){text(24,235,'轻一点，',12,'#626968');text(24,260,'慢慢来。',12,'#626968');}line(354);text(24,408,s.meals,44,'#2D3C43',true);text(181,408,week?s.workouts:s.minutes,44,'#2D3C43',true);text(24,435,week?'次饮食记录':'餐认真吃饭',12,'#626968');text(181,435,week?'次运动完成':'分钟运动',12,'#626968');text(24,470,week?`累计 ${s.minutes} 分钟 · 完成 ${s.percent===null?'—':s.percent+'%'}`:`今日安排 ${s.completed} / ${s.eligible} 已完成`,12,'#344F60');line(490);text(24,531,'轻有间',23,'#344F60',true);text(167,530,s.partial?'记录进行中，慢慢来。':'给生活，留一点余地。',10,'#626968');return canvas.toDataURL('image/png');
+ await document.fonts.ready;
+ const svg=signSvg(s,photo),url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+ try{const image=new Image();image.src=url;await image.decode();const canvas=document.createElement('canvas');canvas.width=1170;canvas.height=2256;canvas.getContext('2d')!.drawImage(image,0,0,1170,2256);return canvas.toDataURL('image/png');}
+ finally{URL.revokeObjectURL(url);}
 }

@@ -1,3 +1,4 @@
+import {signDetails} from './sign-design';
 import { Injectable, HttpException } from '@nestjs/common';
 import { Db } from './db';
 import { randomInt, createHash, randomUUID, createHmac } from 'node:crypto';
@@ -174,7 +175,7 @@ export class AppService {
       const items=await tx.planItem.findMany({where:{plan:{userId:id,status:{in:['ACTIVE','ENDED']}},date:{gte:start,lte:end<today()?end:today()}}});
       const records=await tx.record.findMany({where:{userId:id,date:{gte:start,lte:end},revokedAt:null}});
       let photoAssetId:string|undefined;if(b.template==='photo'&&b.photoAssetId){const asset=await tx.asset.findFirst({where:{id:b.photoAssetId,userId:id,purpose:'PHOTO'}});if(!asset)fail(403,'INVALID_PHOTO','照片不可用');photoAssetId=asset.id;}
-      const snapshot={...stats(items,records),start,end,kind:b.kind,template:b.template||'botanical',photoAssetId,partial:end>today(),templateVersion:'1'};
+      const snapshot={...stats(items,records),...signDetails(items,records,start,end),start,end,kind:b.kind,template:b.template||'botanical',photoAssetId,partial:end>today(),templateVersion:'2'};
       const digest=hash(JSON.stringify({snapshot,items:items.map((i:any)=>[i.id,i.revision,i.disposition]).sort(),records:records.map((r:any)=>[r.id,r.revision]).sort()}));
       const existing=await tx.report.findUnique({where:{userId_hash:{userId:id,hash:digest}}});if(existing)return existing;
       const r=await tx.report.create({data:{userId:id,kind:b.kind,startDate:start,endDate:end,snapshot:json(snapshot),hash:digest}});
