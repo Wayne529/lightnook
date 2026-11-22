@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+datasource db {
+  provider = "postgresql"
+}
+model User {
+  id String @id @default(uuid())
+  name String @default("小间")
+  phoneHash String? @unique
+  preferences Json @default("{}")
+  preferencesRevision Int @default(0)
+  createdAt DateTime @default(now())
+  sessions Session[]
+  plans Plan[]
+  records Record[]
+}
+model Session {
+  id String @id @default(uuid())
+  userId String
+  tokenHash String @unique
+  expiresAt DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model PreferenceVersion {
+  id String @id @default(uuid())
+  userId String
+  revision Int
+  value Json
+  createdAt DateTime @default(now())
+  @@unique([userId, revision])
+}
+model Meal {
+  id String @id @default(uuid())
+  slug String @unique
+  ownerId String?
+  published Boolean @default(true)
+  versions MealVersion[]
+}
+model MealVersion {
+  id String @id @default(uuid())
+  mealId String
+  version Int @default(1)
+  title String
+  kind String
+  slots String[]
+  minutes Int
+  costCents Int
+  art String
+  description String
+  ingredients Json
+  steps Json
+  sources Json
+  allergens String[]
+  allergenKnown Boolean @default(false)
+  nutrition Json
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  @@unique([mealId, version])
+}
+model Plan {
+  id String @id @default(uuid())
+  userId String
+  startDate String
+  endDate String
+  timeZone String @default("Asia/Shanghai")
+  status String @default("DRAFT")
+  revision Int @default(1)
+  preferencesRevision Int @default(0)
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items PlanItem[]
+  @@index([userId, status])
+}
+model PlanItem {
+  id String @id @default(uuid())
+  planId String
+  date String
+  slot String
+  mealVersionId String?
+  snapshot Json
+  disposition String @default("SCHEDULED")
+  revision Int @default(1)
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  records Record[]
+  @@unique([planId, date, slot])
+}
+model Record {
+  id String @id @default(uuid())
+  userId String
+  itemId String?
+  date String
+  type String
+  occurredAt DateTime
+  actual Json
+  revision Int @default(1)
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item PlanItem? @relation(fields: [itemId], references: [id])
+  @@index([userId, date])
+}
+model ChangeLog {
+  id String @id @default(uuid())
+  userId String
+  resourceId String
+  action String
+  before Json
+  after Json
+  createdAt DateTime @default(now())
+}
+model Favorite {
+  userId String
+  mealId String
+  @@id([userId, mealId])
+}
+model DrawPool {
+  id String @id @default(uuid())
+  userId String
+  preferencesRevision Int
+  candidates Json
+  expiresAt DateTime
+  draws Draw[]
+}
+model Draw {
+  id String @id @default(uuid())
+  poolId String
+  userId String
+  resultIndex Int
+  mealVersionId String
+  createdAt DateTime @default(now())
+  pool DrawPool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+}
+model GroceryList {
+  id String @id @default(uuid())
+  userId String
+  planId String
+  sourceRevision Int
+  revision Int @default(1)
+  items Json
+  createdAt DateTime @default(now())
+}
+model Report {
+  id String @id @default(uuid())
+  userId String
+  kind String
+  startDate String
+  endDate String
+  snapshot Json
+  hash String
+  status String @default("PENDING")
+  stale Boolean @default(false)
+  assetId String?
+  error String?
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+  @@unique([userId, hash])
+}
+model Asset {
+  id String @id @default(uuid())
+  userId String
+  key String @unique
+  purpose String
+  mime String
+  createdAt DateTime @default(now())
+}
+model Outbox {
+  id String @id @default(uuid())
+  reportId String
+  publishedAt DateTime?
+  leaseUntil DateTime?
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+}
+model Idempotency {
+  id String @id
+  userId String
+  hash String
+  response Json
+  createdAt DateTime @default(now())
+}
+model OtpChallenge {
+  id String @id @default(uuid())
+  phoneHash String
+  codeHash String
+  attempts Int @default(0)
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([phoneHash, createdAt])
+}

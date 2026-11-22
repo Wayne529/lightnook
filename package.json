@@ -1,0 +1,32 @@
+{
+  "name": "lightnook",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.12.3",
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "pnpm --filter @lightnook/api build && pnpm --filter @lightnook/web build",
+    "typecheck": "pnpm --filter @lightnook/api typecheck && pnpm --filter @lightnook/web typecheck",
+    "test": "vitest run",
+    "e2e": "node scripts/e2e.mjs",
+    "db:generate": "pnpm --filter @lightnook/api prisma generate",
+    "db:migrate": "pnpm --filter @lightnook/api prisma migrate deploy",
+    "db:seed": "node apps/api/dist/seed.js",
+    "local:infra": "node scripts/infra.mjs start",
+    "local:stop": "node scripts/infra.mjs stop",
+    "dev:offline": "pnpm --filter @lightnook/web dev:offline",
+    "build:offline": "pnpm --filter @lightnook/web build:offline && node scripts/precache.mjs",
+    "preview:offline": "node scripts/serve-offline.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.1.1",
+    "concurrently": "9.2.1",
+    "@types/node": "22.19.1",
+    "prettier": "3.7.4",
+    "playwright": "^1.56.1"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "@lightnook/worker",
+  "private": true,
+  "scripts": {
+    "start": "node ../api/dist/worker.js"
+  }
+}

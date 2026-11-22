@@ -1,0 +1,14 @@
+node_modules/
+**/dist/
+.env
+.env.*
+!.env.example
+!apps/web/.env.offline
+.data/
+coverage/
+test-results/
+*.log
+apps/api/src/generated/
+**/dist-offline/
+.DS_Store
+*.tsbuildinfo

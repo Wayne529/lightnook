@@ -1,0 +1,1254 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "AppController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/auth/csrf": {
+      "get": {
+        "operationId": "AppController_csrf",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/auth/dev-session": {
+      "post": {
+        "operationId": "AppController_dev",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "仅本机开发体验账号；生产环境禁止",
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/auth/otp": {
+      "post": {
+        "operationId": "AppController_otp",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "post": {
+        "operationId": "AppController_login",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/auth/session": {
+      "delete": {
+        "operationId": "AppController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "AppController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      },
+      "delete": {
+        "operationId": "AppController_deleteMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/me/preferences": {
+      "put": {
+        "operationId": "AppController_preferences",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/meals": {
+      "get": {
+        "operationId": "AppController_meals",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slot",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scene",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "favorites",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recommended",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      },
+      "post": {
+        "operationId": "AppController_custom",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomMealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/meals/{id}": {
+      "get": {
+        "operationId": "AppController_meal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/me/favorites/{id}": {
+      "put": {
+        "operationId": "AppController_favorite",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      },
+      "delete": {
+        "operationId": "AppController_unfavorite",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/plan-drafts": {
+      "post": {
+        "operationId": "AppController_draft",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/plans/{id}": {
+      "get": {
+        "operationId": "AppController_plan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/plan-items/{id}": {
+      "get": {
+        "operationId": "AppController_item",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      },
+      "patch": {
+        "operationId": "AppController_adjust",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/plans/{id}/activate": {
+      "post": {
+        "operationId": "AppController_activate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/plans/{id}/end": {
+      "post": {
+        "operationId": "AppController_end",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/plan-items/{id}/replace": {
+      "post": {
+        "operationId": "AppController_replace",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/today": {
+      "get": {
+        "operationId": "AppController_day",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/calendar": {
+      "get": {
+        "operationId": "AppController_calendar",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/plan-items/{id}/record": {
+      "put": {
+        "operationId": "AppController_record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/records/{id}/revoke": {
+      "post": {
+        "operationId": "AppController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/draw-pools": {
+      "post": {
+        "operationId": "AppController_pool",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PoolDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/draw-pools/{id}/draws": {
+      "post": {
+        "operationId": "AppController_draw",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/grocery-lists": {
+      "post": {
+        "operationId": "AppController_grocery",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroceryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/grocery-lists/{id}": {
+      "get": {
+        "operationId": "AppController_getGrocery",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      },
+      "patch": {
+        "operationId": "AppController_patchGrocery",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroceryPatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/grocery-lists/{id}/refresh": {
+      "post": {
+        "operationId": "AppController_refresh",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/sign-reports": {
+      "post": {
+        "operationId": "AppController_report",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/sign-reports/{id}": {
+      "get": {
+        "operationId": "AppController_getReport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/sign-reports/{id}/retry": {
+      "post": {
+        "operationId": "AppController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/me/signs": {
+      "get": {
+        "operationId": "AppController_reports",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/media/{id}/access": {
+      "get": {
+        "operationId": "AppController_access",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/media/{id}/file": {
+      "get": {
+        "operationId": "AppController_file",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expires",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/media": {
+      "post": {
+        "operationId": "AppController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    },
+    "/api/v1/me/data-export": {
+      "get": {
+        "operationId": "AppController_exportData",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "LightNook"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "LightNook API",
+    "description": "",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "ln_session"
+      }
+    },
+    "schemas": {
+      "DevLoginDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "PreferenceDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "number"
+          },
+          "scene": {
+            "type": "string",
+            "enum": [
+              "home",
+              "mixed",
+              "outside"
+            ]
+          },
+          "minutes": {
+            "type": "number"
+          },
+          "budget": {
+            "type": "number"
+          },
+          "allergens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dislikes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workoutDays": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "scene",
+          "minutes",
+          "budget",
+          "allergens",
+          "dislikes",
+          "workoutDays"
+        ]
+      },
+      "CustomMealDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "minutes": {
+            "type": "number"
+          },
+          "costCents": {
+            "type": "number"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "kind",
+          "minutes",
+          "costCents",
+          "slots"
+        ]
+      },
+      "PlanDto": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string"
+          },
+          "durationDays": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "startDate",
+          "durationDays"
+        ]
+      },
+      "RevisionDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ]
+      },
+      "ReplaceDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "number"
+          },
+          "mealVersionId": {
+            "type": "string"
+          },
+          "drawId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "mealVersionId"
+        ]
+      },
+      "RecordDto": {
+        "type": "object",
+        "properties": {
+          "expectedItemRevision": {
+            "type": "number"
+          },
+          "expectedRecordRevision": {
+            "type": "number"
+          },
+          "occurredAt": {
+            "type": "string"
+          },
+          "mealVersionId": {
+            "type": "string"
+          },
+          "portion": {
+            "type": "number"
+          },
+          "minutes": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "expectedItemRevision",
+          "occurredAt"
+        ]
+      },
+      "PoolDto": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "string"
+          },
+          "scene": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slot"
+        ]
+      },
+      "GroceryDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "planId"
+        ]
+      },
+      "GroceryPatchDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "number"
+          },
+          "key": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "key",
+          "checked"
+        ]
+      },
+      "SignDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "photoAssetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "date"
+        ]
+      }
+    }
+  }
+}

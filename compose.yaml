@@ -1,0 +1,22 @@
+# Optional local infrastructure. Application services run through pnpm dev.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: lightnook
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lightnook-local-dev}
+      POSTGRES_DB: lightnook
+    ports: ["127.0.0.1:55436:5432"]
+    volumes: ["lightnook-pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lightnook"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports: ["127.0.0.1:56386:6379"]
+    volumes: ["lightnook-redis:/data"]
+volumes:
+  lightnook-pg:
+  lightnook-redis:
