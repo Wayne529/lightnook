@@ -15,6 +15,8 @@ export class PreferenceDto {
 export class PlanDto {
   @ApiProperty() @IsString() startDate!: string;
   @ApiProperty() @IsIn([7,14,21]) durationDays!: number;
+  @ApiPropertyOptional({enum:['my','auto'],description:'用选定食材生成，或程序自动搭配；省略时沿用饮食偏好'}) @IsOptional() @IsIn(['my','auto']) ingredientSource?: 'my'|'auto';
+  @ApiPropertyOptional({type:[String],description:'本次生成计划选用的食材'}) @IsOptional() @IsArray() @IsString({each:true}) @ArrayMaxSize(60) @MaxLength(20,{each:true}) ingredients?: string[];
 }
 export class RevisionDto { @ApiProperty() @IsInt() @Min(1) expectedRevision!: number; }
 export class ReplaceDto extends RevisionDto {

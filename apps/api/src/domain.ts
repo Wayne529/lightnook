@@ -61,6 +61,14 @@ export function mealReason(meal:MealChoice,pref:Preferences){
   if(fit.liked)return '含有你更喜欢的食材';
   return meal.minutes<=15?'简单快手，忙碌时也从容':'符合你的时间与预算';
 }
+export function planPreferences(pref:Preferences,source?:'my'|'auto',ingredients?:string[]):Preferences{
+  if(source===undefined)return pref;
+  if(source==='auto')return {...pref,availableIngredients:[],ingredientMode:'prefer'};
+  if(source!=='my')throw new Error('请选择计划生成方式');
+  const names=ingredients??pref.availableIngredients;
+  const issue=ingredientPreferenceError({availableIngredients:names,ingredientMode:'only'});if(issue)throw new Error(issue);
+  return normalizePreferences({...pref,scene:'home',ingredientMode:'only',availableIngredients:names});
+}
 export function stats(items: any[], records: any[]) {
   const active = records.filter(r => !r.revokedAt);
   const scheduled = items.filter(i => i.disposition === 'SCHEDULED');

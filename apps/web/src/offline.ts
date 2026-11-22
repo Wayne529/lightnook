@@ -1,6 +1,6 @@
 import {signDetails} from '../../api/src/sign-design';
 import {fixtures} from '../../api/src/fixtures';
-import {defaults,normalizePreferences,ingredientPreferenceError,rankMeals,cookingPool,mealReason,eligible,today,addDays,weekStart,stats,groceries,reconcileGroceries,isDate} from '../../api/src/domain';
+import {defaults,normalizePreferences,planPreferences,ingredientPreferenceError,rankMeals,cookingPool,mealReason,eligible,today,addDays,weekStart,stats,groceries,reconcileGroceries,isDate} from '../../api/src/domain';
 import {renderOfflineSign} from './offline-sign';
 const KEY='lightnook-offline-v1';
 type Store={schemaVersion:1;revision:number;user:any;loggedIn:boolean;preferences:any;preferencesRevision:number;meals:any[];plans:any[];items:any[];records:any[];favorites:string[];pools:any[];draws:any[];groceries:any[];reports:any[];assets:any[];idempotency:Record<string,any>};
@@ -48,7 +48,8 @@ async function dispatch(s:Store,path:string,method:string,b:any,options:RequestI
  match=p.match(/^\/me\/favorites\/([^/]+)$/);if(match){const mealId=match[1];if(!allMeals(s).some(m=>m.mealId===mealId))error(404,'NOT_FOUND','餐单不存在');s.favorites=s.favorites.filter(m=>m!==mealId);if(method==='PUT')s.favorites.push(mealId);return {favorite:method==='PUT'};}
  if(p==='/plan-drafts'){
    checkDate(b.startDate);if(b.startDate<today()||![7,14,21].includes(b.durationDays))error(422,'INVALID_DATE','请检查计划开始日与周期');
-   const pools=['breakfast','lunch','dinner'].map(slot=>cookingPool(allMeals(s).filter(m=>m.slots.includes(slot)&&eligible(m,s.preferences)),s.preferences));
+   let pref;try{pref=planPreferences(s.preferences,b.ingredientSource,b.ingredients);}catch(e){error(422,'INVALID_INGREDIENTS',(e as Error).message);}
+   const pools=['breakfast','lunch','dinner'].map(slot=>cookingPool(allMeals(s).filter(m=>m.slots.includes(slot)&&eligible(m,pref)),pref));
    if(pools.some(p=>!p.length))error(422,'NO_ELIGIBLE_MEALS','部分餐次没有合适的餐食，请调整常买食材、食材使用方式、时间或预算；过敏条件会继续保留');
    const p={id:id(),userId:s.user.id,startDate:b.startDate,endDate:addDays(b.startDate,b.durationDays-1),timeZone:'Asia/Shanghai',status:'DRAFT',revision:1,preferencesRevision:s.preferencesRevision};s.plans.push(p);
    for(let d=0;d<b.durationDays;d++){const date=addDays(b.startDate,d);for(let j=0;j<3;j++){const m=pools[j][(d+j)%pools[j].length];s.items.push({id:id(),planId:p.id,date,slot:['breakfast','lunch','dinner'][j],mealVersionId:m.id,snapshot:m,disposition:'SCHEDULED',revision:1});}if(s.preferences.workoutDays.includes(new Date(date+'T12:00:00Z').getUTCDay()))s.items.push({id:id(),planId:p.id,date,slot:'workout',snapshot:{title:'舒展与快走',minutes:20,steps:[{title:'轻快步行',minutes:15},{title:'轻柔舒展',minutes:5}]},disposition:'SCHEDULED',revision:1});}return p;

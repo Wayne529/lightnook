@@ -2,7 +2,9 @@ const ingredient = (name: string, quantity: number, basis = 'RAW', unit = 'g') =
 export const fixtures = [
   ['chicken-bowl', '鸡胸糙米碗', 'chicken', 20, 1800, [], ['lunch', 'dinner']],
   ['tomato-tofu', '番茄豆腐面', 'tofu', 15, 1500, ['soy', 'gluten'], ['lunch', 'dinner']],
-  ['salmon-rice', '香煎鱼配杂粮饭', 'salmon', 25, 2500, ['fish'], ['lunch', 'dinner']],
+  ['salmon-rice', '香煎三文鱼杂粮饭', 'salmon', 25, 2500, ['fish'], ['lunch', 'dinner']],
+  ['salmon-broccoli-bowl', '三文鱼西兰花糙米碗', 'salmon', 25, 2800, ['fish'], ['lunch', 'dinner']],
+  ['cod-vegetable', '清蒸鳕鱼时蔬饭', 'salmon', 25, 2600, ['fish'], ['lunch', 'dinner']],
   ['mushroom-chicken', '香菇鸡肉饭', 'chicken', 25, 1800, [], ['lunch', 'dinner']],
   ['vegetable-eggs', '杂蔬鸡蛋饭', 'tofu', 15, 1200, ['egg'], ['lunch', 'dinner']],
   ['beef-bowl', '时蔬牛肉饭', 'chicken', 20, 2300, [], ['lunch', 'dinner']],
@@ -20,7 +22,7 @@ export const fixtures = [
   ['millet-bowl', '小米粥与时蔬', 'breakfast', 20, 800, [], ['breakfast']],
 ].map(([slug, title, art, minutes, cost, allergens, slots]) => {
   const name=String(title);
-  const ing = art === 'breakfast' ? (name.includes('鸡蛋')?[ingredient('鸡蛋',2,'RAW','个'),ingredient(name.includes('红薯')?'红薯':'全麦吐司',100)]:name.includes('小米')?[ingredient('小米',40),ingredient('蔬菜',100)]:[ingredient('燕麦',40),ingredient(name.includes('豆乳')?'豆乳':'原味酸奶',200,'READY'),ingredient('水果',80)]) : [ingredient(name.includes('豆腐')?'豆腐':name.includes('鸡蛋')?'鸡蛋':name.includes('牛肉')?'牛肉':name.includes('虾')?'鲜虾':name.includes('鱼')?'鱼肉':'鸡胸肉',150),ingredient(name.includes('面')?'面条':'糙米饭',150,'COOKED'),ingredient('西兰花',100),ingredient('番茄',80),ingredient('食用油',8)];
+  const ing = art === 'breakfast' ? (name.includes('鸡蛋')?[ingredient('鸡蛋',2,'RAW','个'),ingredient(name.includes('红薯')?'红薯':'全麦吐司',100)]:name.includes('小米')?[ingredient('小米',40),ingredient('蔬菜',100)]:[ingredient('燕麦',40),ingredient(name.includes('豆乳')?'豆乳':'原味酸奶',200,'READY'),ingredient('水果',80)]) : [ingredient(name.includes('豆腐')?'豆腐':name.includes('鸡蛋')?'鸡蛋':name.includes('牛肉')?'牛肉':name.includes('虾')?'鲜虾':name.includes('三文鱼')?'三文鱼':name.includes('鳕鱼')?'鳕鱼':name.includes('鱼')?'鱼肉':'鸡胸肉',150),ingredient(name.includes('面')?'面条':'糙米饭',150,'COOKED'),ingredient('西兰花',100),ingredient('番茄',80),ingredient('食用油',8)];
   const actualAllergens=[...new Set([...(allergens as string[]),...ing.flatMap(i=>i.name.includes('酸奶')?['milk']:i.name==='豆腐'||i.name==='豆乳'?['soy']:i.name==='鸡蛋'?['egg']:i.name==='面条'||i.name.includes('吐司')?['gluten']:[])])];
   return { slug: String(slug), title: String(title), art: String(art), minutes: Number(minutes), costCents: Number(cost), allergens: actualAllergens, slots: slots as string[], kind: 'HOME', allergenKnown: true,
     description: '一份刚刚好的满足，给忙碌的日子一点温度。', ingredients: ing,

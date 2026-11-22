@@ -2,7 +2,7 @@ import {signDetails} from './sign-design';
 import { Injectable, HttpException } from '@nestjs/common';
 import { Db } from './db';
 import { randomInt, createHash, randomUUID, createHmac } from 'node:crypto';
-import { normalizePreferences, ingredientPreferenceError, rankMeals, cookingPool, mealReason, eligible, today, addDays, weekday, weekStart, stats, groceries, reconcileGroceries, isDate, Preferences } from './domain';
+import { normalizePreferences, planPreferences, ingredientPreferenceError, rankMeals, cookingPool, mealReason, eligible, today, addDays, weekday, weekStart, stats, groceries, reconcileGroceries, isDate, Preferences } from './domain';
 import { RecordDto, PreferenceDto, PlanDto, ReplaceDto, SignDto } from './dto';
 export function fail(status: number, code: string, message: string): never { throw new HttpException({ code, message }, status); }
 export const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -66,7 +66,8 @@ export class AppService {
   }
   async draft(id:string,b:PlanDto,key?:string){
     validDate(b.startDate);if(b.startDate<today())fail(422,'PAST_DATE','新计划请从今天或未来开始');
-    const u=await this.user(id),pref=this.preferences(u),all=await this.meals(id);
+    const u=await this.user(id),all=await this.meals(id);
+    let pref:Preferences;try{pref=planPreferences(this.preferences(u),b.ingredientSource,b.ingredients);}catch(e){fail(422,'INVALID_INGREDIENTS',(e as Error).message);}
     const pools=['breakfast','lunch','dinner'].map(slot=>cookingPool(all.filter(m=>m.slots.includes(slot)&&eligible(m,pref,slot)),pref));
     if(pools.some(p=>!p.length))fail(422,'NO_ELIGIBLE_MEALS','部分餐次没有合适的餐食，请调整常买食材、食材使用方式、时间或预算；过敏限制会继续保留');
     return this.withKey(id,key,'draft',b,async tx=>{

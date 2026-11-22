@@ -1,7 +1,7 @@
 import {signDetails,signSvg} from '../apps/api/src/sign-design';
 import {ingredientCategory} from '../apps/api/src/ingredients';
 import {describe,it,expect} from 'vitest';
-import {eligible,defaults,normalizePreferences,ingredientPreferenceError,ingredientFit,rankMeals,cookingPool,mealReason,stats,groceries,reconcileGroceries,addDays,isDate,weekStart} from '../apps/api/src/domain';
+import {eligible,defaults,planPreferences,normalizePreferences,ingredientPreferenceError,ingredientFit,rankMeals,cookingPool,mealReason,stats,groceries,reconcileGroceries,addDays,isDate,weekStart} from '../apps/api/src/domain';
 import {fixtures} from '../apps/api/src/fixtures';
 describe('饮食筛选与历史统计',()=>{it('未知过敏资料不能进入过敏用户自动推荐',()=>{expect(eligible({kind:'OUTSIDE',minutes:5,costCents:1000,title:'参考餐',allergens:[],allergenKnown:false},{...defaults,allergens:['peanut']})).toBe(false)});it('配方原料的乳制品均被标记',()=>{for(const m of fixtures)if(m.ingredients.some(i=>i.name.includes('酸奶')))expect(m.allergens).toContain('milk')});it('含过敏原的餐食被排除',()=>{const m=fixtures.find(m=>m.allergens.includes('milk'))!;expect(eligible(m,{...defaults,allergens:['milk']})).toBe(false)});it('休息任务不计分母，额外记录不计完成分子',()=>{const r=stats([{id:'a',disposition:'SCHEDULED'},{id:'b',disposition:'EXCUSED'}],[{itemId:'a',type:'MEAL',actual:{}},{type:'WORKOUT',actual:{minutes:10}}]);expect(r.completed).toBe(1);expect(r.eligible).toBe(1);expect(r.minutes).toBe(10)});it('撤销记录不计完成',()=>expect(stats([{id:'a',disposition:'SCHEDULED'}],[{itemId:'a',revokedAt:new Date(),actual:{}}]).completed).toBe(0));it('没有任务显示空完成率',()=>expect(stats([],[]).percent).toBeNull());});
 describe('采购与日期',()=>{it('生熟重与单位不可误合并',()=>{const items=[{slot:'lunch',snapshot:{ingredients:[{name:'米饭',quantity:150,unit:'g',basis:'COOKED'},{name:'米饭',quantity:50,unit:'g',basis:'RAW'}]}}];expect(groceries(items)).toHaveLength(2)});it('增加数量必须复核库存',()=>{const r=reconcileGroceries([{key:'a',quantity:1,checked:true}],[{key:'a',quantity:2}]);expect(r[0].needsReview).toBe(true)});it('日期与周一边界正确',()=>{expect(addDays('2026-11-30',1)).toBe('2026-12-01');expect(weekStart('2026-11-22')).toBe('2026-11-16');expect(isDate('2026-02-30')).toBe(false)});});
@@ -32,3 +32,10 @@ describe('签卡明细与隐私',()=>{
  it('签卡转义用户餐名，历史快照也能渲染',()=>{const svg=signSvg({kind:'day',mealsList:[{title:'<script> & 菜',done:true}],start:'2026-11-16',end:'2026-11-16'});expect(svg).toContain('&lt;script&gt;');expect(svg).not.toContain('<script>');expect(signSvg({kind:'week',start:'2026-11-16',end:'2026-11-22'})).toContain('历史签卡');});
 });
 describe('食材分类',()=>{it('区分鱼、蔬菜、菌菇与调味，同义词一致',()=>{expect(ingredientCategory('鳕鱼')).toBe('鱼类');expect(ingredientCategory('西红柿')).toBe('蔬菜类');expect(ingredientCategory('香菇')).toBe('菌菇类');expect(ingredientCategory('食用油')).toBe('调味类');expect(ingredientCategory('我的本地特产')).toBe('其他');});});
+
+
+describe('每份计划的食材来源',()=>{
+ it('自动生成放开采购清单，但保留过敏与忌口',()=>{const pref={...defaults,ingredientMode:'only' as const,availableIngredients:['芦笋'],allergens:['fish'],dislikes:['番茄']};const auto=planPreferences(pref,'auto');expect(auto.availableIngredients).toEqual([]);expect(auto.allergens).toEqual(['fish']);expect(auto.dislikes).toEqual(['番茄']);expect(pref.availableIngredients).toEqual(['芦笋']);});
+ it('只用此次勾选的食材，切换到做饭场景，不改变常买偏好',()=>{const pref={...defaults,availableIngredients:['鸡蛋','豆腐']};const mine=planPreferences(pref,'my',['鸡蛋']);expect(mine.availableIngredients).toEqual(['鸡蛋']);expect(mine.scene).toBe('home');expect(mine.ingredientMode).toBe('only');expect(pref.availableIngredients).toHaveLength(2);expect(()=>planPreferences(pref,'my',[])).toThrow();});
+ it('兼容旧客户端，并提供明确鱼种',()=>{expect(planPreferences(defaults)).toBe(defaults);for(const species of ['三文鱼','鳕鱼']){const recipe=fixtures.find(m=>m.title.includes(species));expect(recipe).toBeTruthy();expect(recipe!.ingredients.some(i=>i.name===species)).toBe(true);expect(recipe!.allergens).toContain('fish');}});
+});

@@ -1134,6 +1134,21 @@
           },
           "durationDays": {
             "type": "number"
+          },
+          "ingredientSource": {
+            "type": "string",
+            "enum": [
+              "my",
+              "auto"
+            ],
+            "description": "用选定食材生成，或程序自动搭配；省略时沿用饮食偏好"
+          },
+          "ingredients": {
+            "description": "本次生成计划选用的食材",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
