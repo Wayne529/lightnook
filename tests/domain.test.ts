@@ -1,3 +1,4 @@
+import {getWorkout,workoutSnapshot,workoutPreferenceError,workoutKeys} from '../apps/api/src/workouts';
 import {signDetails,signSvg} from '../apps/api/src/sign-design';
 import {ingredientCategory} from '../apps/api/src/ingredients';
 import {describe,it,expect} from 'vitest';
@@ -39,3 +40,6 @@ describe('每份计划的食材来源',()=>{
  it('只用此次勾选的食材，切换到做饭场景，不改变常买偏好',()=>{const pref={...defaults,availableIngredients:['鸡蛋','豆腐']};const mine=planPreferences(pref,'my',['鸡蛋']);expect(mine.availableIngredients).toEqual(['鸡蛋']);expect(mine.scene).toBe('home');expect(mine.ingredientMode).toBe('only');expect(pref.availableIngredients).toHaveLength(2);expect(()=>planPreferences(pref,'my',[])).toThrow();});
  it('兼容旧客户端，并提供明确鱼种',()=>{expect(planPreferences(defaults)).toBe(defaults);for(const species of ['三文鱼','鳕鱼']){const recipe=fixtures.find(m=>m.title.includes(species));expect(recipe).toBeTruthy();expect(recipe!.ingredients.some(i=>i.name===species)).toBe(true);expect(recipe!.allergens).toContain('fish');}});
 });
+
+
+describe('多种运动选择',()=>{it('常见运动包含用户指定种类，并按偏好轮换',()=>{expect(workoutKeys).toEqual(expect.arrayContaining(['walk','run','swim','badminton','hike']));expect(workoutSnapshot(['swim','badminton'],0).title).toBe('游泳');expect(workoutSnapshot(['swim','badminton'],1).title).toBe('羽毛球');expect(workoutSnapshot(['swim','badminton'],2).title).toBe('游泳');});it('旧偏好默认散步，未知类型不允许保存',()=>{expect(normalizePreferences({}).workoutTypes).toEqual(['walk']);expect(workoutPreferenceError({workoutDays:[1],workoutTypes:[]})).toBeTruthy();expect(workoutPreferenceError({workoutTypes:['unknown']})).toBeTruthy();expect(workoutPreferenceError({workoutDays:[],workoutTypes:[]})).toBeNull();expect(getWorkout('swim').title).toBe('游泳');});});

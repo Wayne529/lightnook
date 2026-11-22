@@ -1,5 +1,5 @@
-export type Preferences = { scene: string; minutes: number; budget: number; allergens: string[]; dislikes: string[]; workoutDays: number[]; availableIngredients: string[]; preferredIngredients: string[]; ingredientMode: 'prefer'|'only' };
-export const defaults: Preferences = { scene: 'mixed', minutes: 30, budget: 3000, allergens: [], dislikes: [], workoutDays: [1, 2, 4, 6, 0], availableIngredients: [], preferredIngredients: [], ingredientMode: 'prefer' };
+export type Preferences = { scene: string; minutes: number; budget: number; allergens: string[]; dislikes: string[]; workoutDays: number[]; workoutTypes:string[]; availableIngredients: string[]; preferredIngredients: string[]; ingredientMode: 'prefer'|'only' };
+export const defaults: Preferences = { scene: 'mixed', minutes: 30, budget: 3000, allergens: [], dislikes: [], workoutDays: [1, 2, 4, 6, 0], workoutTypes:['walk'], availableIngredients: [], preferredIngredients: [], ingredientMode: 'prefer' };
 export const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 export const addDays = (date: string, n: number) => { const d = new Date(`${date}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 export const weekday = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
@@ -18,7 +18,7 @@ export function ingredientPreferenceError(value:any):string|null{
 }
 export function normalizePreferences(value:Partial<Preferences>):Preferences{
   const result={...defaults,...Object.fromEntries(Object.entries(value).filter(([,v])=>v!==undefined))} as Preferences;
-  for(const key of ['availableIngredients','preferredIngredients','dislikes'] as const)result[key]=[...new Map(result[key].map(s=>[ingredientKey(s),s.trim()])).values()];
+  for(const key of ['availableIngredients','preferredIngredients','dislikes','workoutTypes'] as const)result[key]=[...new Map(result[key].map(s=>[ingredientKey(s),s.trim()])).values()];
   return result;
 }
 export function ingredientFit(meal:MealChoice,pref:Preferences){

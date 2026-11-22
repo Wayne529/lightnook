@@ -1,3 +1,4 @@
+import {getWorkout,workoutPreferenceError,workoutSnapshot} from './workouts';
 import {signDetails} from './sign-design';
 import { Injectable, HttpException } from '@nestjs/common';
 import { Db } from './db';
@@ -27,7 +28,7 @@ export class AppService {
     const {expectedRevision,...rawInput}=dto;
     const input=Object.fromEntries(Object.entries(rawInput).filter(([,value])=>value!==undefined));
     const merged={...this.preferences(await this.user(id)),...input};
-    const issue=ingredientPreferenceError(merged);if(issue)fail(422,'INVALID_INGREDIENTS',issue);
+    const issue=ingredientPreferenceError(merged)||workoutPreferenceError(merged);if(issue)fail(422,'INVALID_INGREDIENTS',issue);
     const value=normalizePreferences(merged);
     const allowed=['peanut','milk','egg','soy','fish','shellfish','gluten','nuts'];
     if (value.allergens.some(a=>!allowed.includes(a))) fail(422,'INVALID_ALLERGEN','请选择支持的过敏原');
@@ -73,10 +74,10 @@ export class AppService {
     return this.withKey(id,key,'draft',b,async tx=>{
       const current=await tx.user.findUnique({where:{id}});if(current.preferencesRevision!==u.preferencesRevision)fail(409,'PREFERENCES_CHANGED','偏好已变化，请重新生成');
       const plan=await tx.plan.create({data:{userId:id,startDate:b.startDate,endDate:addDays(b.startDate,b.durationDays-1),preferencesRevision:u.preferencesRevision}});
-      for(let d=0;d<b.durationDays;d++){
+      let workoutIndex=0;for(let d=0;d<b.durationDays;d++){
         const date=addDays(b.startDate,d);
         for(let s=0;s<3;s++){const options=pools[s],m=options[(d+s)%options.length];await tx.planItem.create({data:{planId:plan.id,date,slot:['breakfast','lunch','dinner'][s],mealVersionId:m.id,snapshot:json(m)}});}
-        if(pref.workoutDays.includes(weekday(date)))await tx.planItem.create({data:{planId:plan.id,date,slot:'workout',snapshot:{title:'舒展与快走',minutes:20,steps:[{title:'轻快步行',minutes:15},{title:'轻柔舒展',minutes:5}]}}});
+        if(pref.workoutDays.includes(weekday(date)))await tx.planItem.create({data:{planId:plan.id,date,slot:'workout',snapshot:workoutSnapshot(pref.workoutTypes,workoutIndex++)}});
       }
       return plan;
     });
@@ -129,7 +130,7 @@ export class AppService {
       const old=item.records[0];if(old&&old.revision!==b.expectedRecordRevision)fail(409,'REVISION_CONFLICT','这条记录已经变化，请刷新后确认');
       if(!old&&b.expectedRecordRevision)fail(409,'REVISION_CONFLICT','原记录已撤销，请刷新');
       let actual:any;
-      if(item.slot==='workout'){if(!b.minutes)fail(422,'DURATION_REQUIRED','请填写实际运动时长');actual={minutes:b.minutes,title:item.snapshot.title,note:b.note||''};}
+      if(item.slot==='workout'){if(!b.minutes)fail(422,'DURATION_REQUIRED','请填写实际运动时长');const w=getWorkout(b.workoutType||(item.snapshot as any).workoutType);actual={minutes:b.minutes,workoutType:w.key,title:w.title,note:b.note||''};}
       else {const meal=b.mealVersionId?await this.meal(b.mealVersionId,id,tx):null;actual={meal:json(meal||item.snapshot),portion:b.portion||1,note:b.note||'',photos:b.photos||[]};}
       if(b.photos?.length){const count=await tx.asset.count({where:{id:{in:b.photos},userId:id,purpose:'PHOTO'}});if(count!==new Set(b.photos).size)fail(403,'INVALID_PHOTO','照片不可用');}
       const record=old?await tx.record.update({where:{id:old.id},data:{actual:json(actual),occurredAt:new Date(b.occurredAt),revision:{increment:1}}}):await tx.record.create({data:{userId:id,itemId,date:item.date,type:item.slot==='workout'?'WORKOUT':'MEAL',occurredAt:new Date(b.occurredAt),actual:json(actual)}});

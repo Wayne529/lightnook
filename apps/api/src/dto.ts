@@ -1,3 +1,4 @@
+import {workoutKeys} from './workouts';
 import { IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, MaxLength, Matches, ArrayMaxSize } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class PreferenceDto {
@@ -10,6 +11,7 @@ export class PreferenceDto {
   @ApiPropertyOptional({type:[String],description:'常买得到的食材；最多60项'}) @IsOptional() @IsArray() @IsString({each:true}) @ArrayMaxSize(60) @MaxLength(20,{each:true}) availableIngredients?: string[];
   @ApiPropertyOptional({type:[String],description:'更喜欢的食材；用于排序'}) @IsOptional() @IsArray() @IsString({each:true}) @ArrayMaxSize(60) @MaxLength(20,{each:true}) preferredIngredients?: string[];
   @ApiPropertyOptional({enum:['prefer','only'],description:'优先常买食材，或做饭只用已选食材'}) @IsOptional() @IsIn(['prefer','only']) ingredientMode?: 'prefer'|'only';
+  @ApiPropertyOptional({enum:workoutKeys,isArray:true}) @IsOptional() @IsArray() @IsIn(workoutKeys,{each:true}) @ArrayMaxSize(9) workoutTypes?:string[];
   @ApiProperty() @IsArray() @IsInt({each:true}) @Min(0,{each:true}) @Max(6,{each:true}) workoutDays!: number[];
 }
 export class PlanDto {
@@ -24,6 +26,7 @@ export class ReplaceDto extends RevisionDto {
   @ApiPropertyOptional() @IsOptional() @IsString() drawId?: string;
 }
 export class RecordDto {
+  @ApiPropertyOptional({enum:workoutKeys}) @IsOptional() @IsIn(workoutKeys) workoutType?:string;
   @ApiProperty() @IsInt() @Min(1) expectedItemRevision!: number;
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) expectedRecordRevision?: number;
   @ApiProperty() @IsString() occurredAt!: string;

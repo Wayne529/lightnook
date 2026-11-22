@@ -1079,6 +1079,23 @@
             ],
             "description": "优先常买食材，或做饭只用已选食材"
           },
+          "workoutTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "walk",
+                "run",
+                "swim",
+                "badminton",
+                "hike",
+                "bike",
+                "stretch",
+                "yoga",
+                "strength"
+              ]
+            }
+          },
           "workoutDays": {
             "type": "array",
             "items": {
@@ -1188,6 +1205,20 @@
       "RecordDto": {
         "type": "object",
         "properties": {
+          "workoutType": {
+            "type": "string",
+            "enum": [
+              "walk",
+              "run",
+              "swim",
+              "badminton",
+              "hike",
+              "bike",
+              "stretch",
+              "yoga",
+              "strength"
+            ]
+          },
           "expectedItemRevision": {
             "type": "number"
           },
