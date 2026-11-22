@@ -19,6 +19,7 @@
     "local:stop": "node scripts/infra.mjs stop",
     "dev:offline": "pnpm --filter @lightnook/web dev:offline",
     "build:offline": "pnpm --filter @lightnook/web build:offline && node scripts/precache.mjs",
+    "build:pages": "VITE_BASE_PATH=/lightnook/ VITE_STATIC_HOST=true pnpm build:offline",
     "preview:offline": "node scripts/serve-offline.mjs"
   },
   "devDependencies": {

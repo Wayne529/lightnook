@@ -21,6 +21,18 @@ node scripts/serve-offline.mjs
 
 离线包预先包含编译后的资源，运行只需 Node，不需 npm 安装、不需网络、不需 PostgreSQL/Redis。首次打开后 Service Worker 缓存应用，支持离线刷新。建议使用同一个 localhost 地址和浏览器保存数据。外部菜谱仍需网络；核心功能不依赖外站。
 
+## GitHub Pages 可访问页面
+
+仓库内 `.github/workflows/pages.yml` 在推送 main 时自动构建并发布纯浏览器版本，无需配置数据库或 API，也无需把个人 Token 写入 Actions。
+
+首次启用：进入仓库 **Settings → Pages → Build and deployment → Source → GitHub Actions**。然后在 **Actions → Deploy LightNook to GitHub Pages → Run workflow** 手动运行一次，部署完成后访问：
+
+https://wayne529.github.io/lightnook/
+
+使用 `/lightnook/` 资源路径与 Hash 路由（例如 `#/profile`），支持直接打开和刷新页面。Service Worker 缓存限定在当前应用目录。数据保存在当前设备的浏览器里，换设备不会自动同步；外部菜谱链接需要网络。Pages 不运行 Node.js 后端，接口版需独立部署。
+
+本机验证 Pages 构建：`pnpm build:pages`；产物目录为 `apps/web/dist-offline`，需挂载在服务器的 `/lightnook/` 路径下。普通本地运行包仍用 `pnpm build:offline` 构建。
+
 ## 接口版
 
 需要 Node 22.12+、PostgreSQL 与 Redis。本机开发可使用已安装的 initdb/pg_ctl/redis-server：
