@@ -1,7 +1,7 @@
 import { Injectable, HttpException } from '@nestjs/common';
 import { Db } from './db';
 import { randomInt, createHash, randomUUID, createHmac } from 'node:crypto';
-import { defaults, eligible, today, addDays, weekday, weekStart, stats, groceries, reconcileGroceries, isDate, Preferences } from './domain';
+import { normalizePreferences, ingredientPreferenceError, rankMeals, cookingPool, mealReason, eligible, today, addDays, weekday, weekStart, stats, groceries, reconcileGroceries, isDate, Preferences } from './domain';
 import { RecordDto, PreferenceDto, PlanDto, ReplaceDto, SignDto } from './dto';
 export function fail(status: number, code: string, message: string): never { throw new HttpException({ code, message }, status); }
 export const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -12,7 +12,7 @@ export function validDate(date: string) { if (!isDate(date)) fail(422,'INVALID_D
 export class AppService {
   constructor(readonly db: Db) {}
   async user(id: string) { const u = await this.db.user.findUnique({where:{id}}); if (!u) fail(401,'UNAUTHORIZED','请先登录'); return u; }
-  preferences(u: any): Preferences { return { ...defaults, ...u.preferences }; }
+  preferences(u: any): Preferences { return normalizePreferences(u.preferences||{}); }
   async meal(id: string, userId?: string, db: any = this.db) {
     const m = await db.mealVersion.findUnique({where:{id},include:{meal:true}});
     if (!m || (m.meal.ownerId && m.meal.ownerId !== userId) || !m.meal.published) fail(404,'NOT_FOUND','餐单不存在');
@@ -23,7 +23,11 @@ export class AppService {
     return { id:u.id,name:u.name,preferences:this.preferences(u),preferencesRevision:u.preferencesRevision,activePlan:plan,demo:process.env.DEV_AUTH==='true' };
   }
   async savePreferences(id: string, dto: PreferenceDto) {
-    const {expectedRevision,...value}=dto;
+    const {expectedRevision,...rawInput}=dto;
+    const input=Object.fromEntries(Object.entries(rawInput).filter(([,value])=>value!==undefined));
+    const merged={...this.preferences(await this.user(id)),...input};
+    const issue=ingredientPreferenceError(merged);if(issue)fail(422,'INVALID_INGREDIENTS',issue);
+    const value=normalizePreferences(merged);
     const allowed=['peanut','milk','egg','soy','fish','shellfish','gluten','nuts'];
     if (value.allergens.some(a=>!allowed.includes(a))) fail(422,'INVALID_ALLERGEN','请选择支持的过敏原');
     return this.db.$transaction(async tx=>{
@@ -37,7 +41,8 @@ export class AppService {
     const u=id?await this.user(id):null;
     const saved=id&&favorites?await this.db.favorite.findMany({where:{userId:id}}):null;
     const all=await this.db.mealVersion.findMany({where:{meal:{published:true,OR:[{ownerId:null},...(id?[{ownerId:id}]:[])]},...(q?{title:{contains:q,mode:'insensitive'}}:{}),...(slot?{slots:{has:slot}}:{})},include:{meal:true},orderBy:{title:'asc'}});
-    return all.filter(m=>(!saved||saved.some(f=>f.mealId===m.mealId))&&(!scene||scene==='mixed'||(scene==='home'?m.kind==='HOME':m.kind==='OUTSIDE'))&&(!recommended||eligible(m,this.preferences(u||{}),slot,scene))).map(m=>({...m,favorite:!!saved?.some(f=>f.mealId===m.mealId),reason:m.minutes<=15?'简单快手，忙碌时也从容':'符合你的时间与预算'}));
+    const selected=all.filter(m=>(!saved||saved.some(f=>f.mealId===m.mealId))&&(!scene||scene==='mixed'||(scene==='home'?m.kind==='HOME':m.kind==='OUTSIDE'))&&(!recommended||eligible(m,this.preferences(u||{}),slot,scene))).map(m=>({...m,favorite:!!saved?.some(f=>f.mealId===m.mealId),reason:mealReason(m,this.preferences(u||{}))}));
+    return recommended?rankMeals(selected,this.preferences(u||{})):selected;
   }
   async favorite(id:string,mealId:string,on:boolean) {
     const m=await this.db.meal.findFirst({where:{id:mealId,published:true,OR:[{ownerId:null},{ownerId:id}]}});if(!m)fail(404,'NOT_FOUND','餐单不存在');
@@ -61,8 +66,8 @@ export class AppService {
   async draft(id:string,b:PlanDto,key?:string){
     validDate(b.startDate);if(b.startDate<today())fail(422,'PAST_DATE','新计划请从今天或未来开始');
     const u=await this.user(id),pref=this.preferences(u),all=await this.meals(id);
-    const pools=['breakfast','lunch','dinner'].map(slot=>all.filter(m=>m.slots.includes(slot)&&eligible(m,pref,slot)));
-    if(pools.some(p=>!p.length))fail(422,'NO_ELIGIBLE_MEALS','部分餐次没有合适的餐食，请调整时间或预算；过敏限制会继续保留');
+    const pools=['breakfast','lunch','dinner'].map(slot=>cookingPool(all.filter(m=>m.slots.includes(slot)&&eligible(m,pref,slot)),pref));
+    if(pools.some(p=>!p.length))fail(422,'NO_ELIGIBLE_MEALS','部分餐次没有合适的餐食，请调整常买食材、食材使用方式、时间或预算；过敏限制会继续保留');
     return this.withKey(id,key,'draft',b,async tx=>{
       const current=await tx.user.findUnique({where:{id}});if(current.preferencesRevision!==u.preferencesRevision)fail(409,'PREFERENCES_CHANGED','偏好已变化，请重新生成');
       const plan=await tx.plan.create({data:{userId:id,startDate:b.startDate,endDate:addDays(b.startDate,b.durationDays-1),preferencesRevision:u.preferencesRevision}});
@@ -140,8 +145,8 @@ export class AppService {
     await tx.report.updateMany({where:{userId:id,startDate:{lte:record.date},endDate:{gte:record.date}},data:{stale:true}});return result;
   });}
   async pool(id:string,slot:string,scene?:string){const u=await this.user(id),all=await this.meals(id,undefined,slot,scene,false,true);
-    if(!all.length)fail(422,'NO_ELIGIBLE_MEALS','没有符合条件的餐单。可以调整时间或预算，过敏条件仍会保留。');
-    const candidates=all.slice(0,6);return this.db.drawPool.create({data:{userId:id,preferencesRevision:u.preferencesRevision,candidates:json(candidates),expiresAt:new Date(Date.now()+15*60000)}});
+    if(!all.length)fail(422,'NO_ELIGIBLE_MEALS','没有符合条件的餐单。可以调整常买食材、食材使用方式、时间或预算，过敏条件仍会保留。');
+    const candidates=cookingPool(all,this.preferences(u)).slice(0,6);return this.db.drawPool.create({data:{userId:id,preferencesRevision:u.preferencesRevision,candidates:json(candidates),expiresAt:new Date(Date.now()+15*60000)}});
   }
   async draw(id:string,poolId:string,key?:string){return this.withKey(id,key,`draw:${poolId}`,{},async tx=>{
     const pool=await tx.drawPool.findFirst({where:{id:poolId,userId:id}}),u=await tx.user.findUnique({where:{id}});

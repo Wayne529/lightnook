@@ -33,6 +33,14 @@ https://wayne529.github.io/lightnook/
 
 本机验证 Pages 构建：`pnpm build:pages`；产物目录为 `apps/web/dist-offline`，需挂载在服务器的 `/lightnook/` 路径下。普通本地运行包仍用 `pnpm build:offline` 构建。
 
+## 自定义食材偏好
+
+在首次定制或“我的 → 饮食偏好”中管理常买得到的食材、更喜欢的食材与不吃的食材。可从常见分类勾选，也可逐项输入自定义名称；常买和喜好每组最多 60 项。
+
+“优先使用”会优先匹配常买食材，自动计划与抽餐选用采购匹配度最高的做饭候选；推荐列表保留其他可选餐单并提示需要补买的食材。“只用已选食材”要求做饭配方的全部原料（含调味品）均已选择，配料未知的自建餐单不会自动入选。番茄/西红柿等少量同义词可匹配，不擅自替换不同原料。外食不受采购清单限制，过敏与忌口始终保留，忌口也会检查菜谱实际配料。
+
+保存影响新计划、推荐、换餐和抽餐；已有计划与记录不会被自动重写。候选池与计划草案通过偏好版本检查失效。旧版离线数据及备份会补齐默认字段，无需清空记录。偏好存储在现有 JSON 字段中，无新增数据库表或迁移。
+
 ## 接口版
 
 需要 Node 22.12+、PostgreSQL 与 Redis。本机开发可使用已安装的 initdb/pg_ctl/redis-server：
@@ -64,6 +72,8 @@ corepack pnpm typecheck
 corepack pnpm build
 node scripts/verify-api.mjs  # 需已启动 API 与 Worker；创建并删除专属测试账号
 corepack pnpm e2e           # 离线构建后执行浏览器流程测试
+node scripts/verify-ingredients.mjs  # Pages 构建挂载 /lightnook/ 到 localhost:5175 后验证食材操作
+node scripts/verify-ingredient-api.mjs # 本机 API 启动后验证食材偏好接口；创建并清理测试账号
 ```
 
 浏览器自动化优先使用本机 Chrome，也可用 `pnpm exec playwright install chromium` 安装测试浏览器。自动化不代替 iOS Safari/微信真机验收。

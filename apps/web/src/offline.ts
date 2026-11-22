@@ -1,11 +1,11 @@
 import {fixtures} from '../../api/src/fixtures';
-import {defaults,eligible,today,addDays,weekStart,stats,groceries,reconcileGroceries,isDate} from '../../api/src/domain';
+import {defaults,normalizePreferences,ingredientPreferenceError,rankMeals,cookingPool,mealReason,eligible,today,addDays,weekStart,stats,groceries,reconcileGroceries,isDate} from '../../api/src/domain';
 import {renderOfflineSign} from './offline-sign';
 const KEY='lightnook-offline-v1';
 type Store={schemaVersion:1;revision:number;user:any;loggedIn:boolean;preferences:any;preferencesRevision:number;meals:any[];plans:any[];items:any[];records:any[];favorites:string[];pools:any[];draws:any[];groceries:any[];reports:any[];assets:any[];idempotency:Record<string,any>};
 const initial=():Store=>({schemaVersion:1,revision:0,user:null,loggedIn:false,preferences:{...defaults},preferencesRevision:0,meals:[],plans:[],items:[],records:[],favorites:[],pools:[],draws:[],groceries:[],reports:[],assets:[],idempotency:{}});
 function error(status:number,code:string,message:string):never{throw Object.assign(new Error(message),{status,code});}
-function read():Store{const raw=localStorage.getItem(KEY);if(!raw)return initial();try{const s=JSON.parse(raw);if(s.schemaVersion!==1)throw Error();return s;}catch{error(422,'LOCAL_DATA_INVALID','本机数据无法读取。请先导出原始备份，再尝试恢复，不会自动清空。');}}
+function read():Store{const raw=localStorage.getItem(KEY);if(!raw)return initial();try{const s=JSON.parse(raw);if(s.schemaVersion!==1)throw Error();s.preferences=normalizePreferences(s.preferences);return s;}catch{error(422,'LOCAL_DATA_INVALID','本机数据无法读取。请先导出原始备份，再尝试恢复，不会自动清空。');}}
 function persist(s:Store,expectedRevision?:number){if(expectedRevision!==undefined){const raw=localStorage.getItem(KEY),actual=raw?JSON.parse(raw).revision:0;if(actual!==expectedRevision)error(409,'REVISION_CONFLICT','另一个页面已更新本机数据，请刷新后再试');}try{s.revision++;localStorage.setItem(KEY,JSON.stringify(s));}catch{error(507,'STORAGE_FULL','本机存储空间不足，记录尚未保存。请先导出备份并清理图片后重试。');}}
 const id=()=>crypto.randomUUID();
 const publicMeals=fixtures.map(m=>({...m,id:`local-${m.slug}-v1`,mealId:`local-${m.slug}`,version:1,meal:{id:`local-${m.slug}`,ownerId:null,published:true}}));
@@ -36,9 +36,9 @@ async function dispatch(s:Store,path:string,method:string,b:any,options:RequestI
    if(s.preferencesRevision!==b.expectedRevision)error(409,'REVISION_CONFLICT','偏好已变化，请刷新后确认');
    if(!['home','mixed','outside'].includes(b.scene)||!Number.isFinite(b.minutes)||b.minutes<5||b.minutes>120||!Number.isFinite(b.budget)||b.budget<500)error(422,'INVALID_INPUT','偏好设置不正确');
    const allergens=['peanut','milk','egg','soy','fish','shellfish','gluten','nuts'];if(!Array.isArray(b.allergens)||b.allergens.some((a:string)=>!allergens.includes(a))||!Array.isArray(b.workoutDays)||b.workoutDays.some((n:number)=>!Number.isInteger(n)||n<0||n>6))error(422,'INVALID_INPUT','过敏或运动日设置不正确');
-   const {expectedRevision,...prefs}=b;s.preferences=prefs;s.preferencesRevision++;return {preferences:prefs,revision:s.preferencesRevision};
+   const {expectedRevision,...input}=b;const issue=ingredientPreferenceError({...s.preferences,...input});if(issue)error(422,'INVALID_INGREDIENTS',issue);const prefs=normalizePreferences({...s.preferences,...input});s.preferences=prefs;s.preferencesRevision++;return {preferences:prefs,revision:s.preferencesRevision};
  }
- if(p==='/meals'&&method==='GET')return allMeals(s).filter(m=>(!q.get('q')||m.title.includes(q.get('q')!))&&(!q.get('slot')||m.slots.includes(q.get('slot')!))&&(!q.get('scene')||q.get('scene')==='mixed'||(q.get('scene')==='home'?m.kind==='HOME':m.kind==='OUTSIDE'))&&(q.get('favorites')!=='true'||s.favorites.includes(m.mealId))&&(q.get('recommended')!=='true'||eligible(m,s.preferences,undefined,q.get('scene')||undefined))).map(m=>({...m,reason:m.minutes<=15?'简单快手，忙碌时也从容':'符合你的时间与预算'}));
+ if(p==='/meals'&&method==='GET'){const selected=allMeals(s).filter(m=>(!q.get('q')||m.title.includes(q.get('q')!))&&(!q.get('slot')||m.slots.includes(q.get('slot')!))&&(!q.get('scene')||q.get('scene')==='mixed'||(q.get('scene')==='home'?m.kind==='HOME':m.kind==='OUTSIDE'))&&(q.get('favorites')!=='true'||s.favorites.includes(m.mealId))&&(q.get('recommended')!=='true'||eligible(m,s.preferences,undefined,q.get('scene')||undefined))).map(m=>({...m,reason:mealReason(m,s.preferences)}));return q.get('recommended')==='true'?rankMeals(selected,s.preferences):selected;}
  if(p==='/meals'&&method==='POST'){
    if(!b.title?.trim()||b.title.length>30||!['HOME','OUTSIDE'].includes(b.kind)||!Number.isFinite(b.minutes)||b.minutes<0||!Number.isFinite(b.costCents))error(422,'INVALID_INPUT','请检查餐单信息');
    const m={...b,id:id(),mealId:id(),art:'tofu',description:'我的私人餐单，配料信息待核对。',ingredients:[],steps:[],sources:[],allergens:[],allergenKnown:false,nutrition:{estimated:true,calories:null,protein:null,label:'未录入营养数据'}};s.meals.push(m);return m;
@@ -47,8 +47,8 @@ async function dispatch(s:Store,path:string,method:string,b:any,options:RequestI
  match=p.match(/^\/me\/favorites\/([^/]+)$/);if(match){const mealId=match[1];if(!allMeals(s).some(m=>m.mealId===mealId))error(404,'NOT_FOUND','餐单不存在');s.favorites=s.favorites.filter(m=>m!==mealId);if(method==='PUT')s.favorites.push(mealId);return {favorite:method==='PUT'};}
  if(p==='/plan-drafts'){
    checkDate(b.startDate);if(b.startDate<today()||![7,14,21].includes(b.durationDays))error(422,'INVALID_DATE','请检查计划开始日与周期');
-   const pools=['breakfast','lunch','dinner'].map(slot=>allMeals(s).filter(m=>m.slots.includes(slot)&&eligible(m,s.preferences)));
-   if(pools.some(p=>!p.length))error(422,'NO_ELIGIBLE_MEALS','部分餐次没有合适的餐食，请调整时间或预算；过敏条件会继续保留');
+   const pools=['breakfast','lunch','dinner'].map(slot=>cookingPool(allMeals(s).filter(m=>m.slots.includes(slot)&&eligible(m,s.preferences)),s.preferences));
+   if(pools.some(p=>!p.length))error(422,'NO_ELIGIBLE_MEALS','部分餐次没有合适的餐食，请调整常买食材、食材使用方式、时间或预算；过敏条件会继续保留');
    const p={id:id(),userId:s.user.id,startDate:b.startDate,endDate:addDays(b.startDate,b.durationDays-1),timeZone:'Asia/Shanghai',status:'DRAFT',revision:1,preferencesRevision:s.preferencesRevision};s.plans.push(p);
    for(let d=0;d<b.durationDays;d++){const date=addDays(b.startDate,d);for(let j=0;j<3;j++){const m=pools[j][(d+j)%pools[j].length];s.items.push({id:id(),planId:p.id,date,slot:['breakfast','lunch','dinner'][j],mealVersionId:m.id,snapshot:m,disposition:'SCHEDULED',revision:1});}if(s.preferences.workoutDays.includes(new Date(date+'T12:00:00Z').getUTCDay()))s.items.push({id:id(),planId:p.id,date,slot:'workout',snapshot:{title:'舒展与快走',minutes:20,steps:[{title:'轻快步行',minutes:15},{title:'轻柔舒展',minutes:5}]},disposition:'SCHEDULED',revision:1});}return p;
  }
@@ -72,7 +72,7 @@ async function dispatch(s:Store,path:string,method:string,b:any,options:RequestI
  }
  match=p.match(/^\/records\/([^/]+)\/revoke$/);if(match){const r=s.records.find(r=>r.id===match![1]);if(!r)error(404,'NOT_FOUND','记录不存在');revision(r,b.expectedRevision);r.revokedAt=new Date().toISOString();r.revision++;changed(s,r.date);return r;}
  if(p==='/draw-pools'){
-   const candidates=allMeals(s).filter(m=>m.slots.includes(b.slot)&&eligible(m,s.preferences,b.slot,b.scene)).slice(0,6);if(!candidates.length)error(422,'NO_ELIGIBLE_MEALS','没有符合条件的餐单，请调整时间或预算；过敏条件会继续保留');const pool={id:id(),preferencesRevision:s.preferencesRevision,candidates,expiresAt:Date.now()+15*60000};s.pools.push(pool);return pool;
+   const candidates=cookingPool(allMeals(s).filter(m=>m.slots.includes(b.slot)&&eligible(m,s.preferences,b.slot,b.scene)),s.preferences).slice(0,6);if(!candidates.length)error(422,'NO_ELIGIBLE_MEALS','没有符合条件的餐单，请调整常买食材、食材使用方式、时间或预算；过敏条件会继续保留');const pool={id:id(),preferencesRevision:s.preferencesRevision,candidates,expiresAt:Date.now()+15*60000};s.pools.push(pool);return pool;
  }
  match=p.match(/^\/draw-pools\/([^/]+)\/draws$/);if(match){const p=s.pools.find(p=>p.id===match![1]);if(!p||p.expiresAt<Date.now()||p.preferencesRevision!==s.preferencesRevision)error(409,'POOL_EXPIRED','候选已过期，请重新抽取');const index=randomIndex(p.candidates.length),d={id:id(),poolId:p.id,resultIndex:index,mealVersionId:p.candidates[index].id};s.draws.push(d);return d;}
  if(p==='/grocery-lists'){const p=plan(s,b.planId),g={id:id(),planId:p.id,sourceRevision:p.revision,revision:1,items:groceries(p.items.filter((i:any)=>i.date>=today()&&i.date<=addDays(today(),2)))};s.groceries.push(g);return g;}
@@ -105,5 +105,5 @@ export async function importBackup(text:string){
  if(s.assets.some(a=>typeof a.url!=='string'||!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(a.url)))error(422,'INVALID_BACKUP','备份包含不支持的图片格式');
  if(s.items.some(i=>!s.plans.some(p=>p.id===i.planId)||!isDate(i.date)||!i.snapshot||typeof i.snapshot.title!=='string'))error(422,'INVALID_BACKUP','备份中的任务关系不完整');
  if(s.records.some(r=>!isDate(r.date)||!r.actual||!s.items.some(i=>i.id===r.itemId)))error(422,'INVALID_BACKUP','备份中的记录关系不完整');
- s.idempotency={};s.loggedIn=true;persist(s);
+ const issue=ingredientPreferenceError(s.preferences);if(issue)error(422,'INVALID_BACKUP',issue);s.preferences=normalizePreferences(s.preferences);s.idempotency={};s.loggedIn=true;persist(s);
 }

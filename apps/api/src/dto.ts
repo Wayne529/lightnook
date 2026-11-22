@@ -6,7 +6,10 @@ export class PreferenceDto {
   @ApiProperty() @IsInt() @Min(5) @Max(120) minutes!: number;
   @ApiProperty() @IsInt() @Min(500) @Max(50000) budget!: number;
   @ApiProperty() @IsArray() @IsString({each:true}) @ArrayMaxSize(12) allergens!: string[];
-  @ApiProperty() @IsArray() @IsString({each:true}) @ArrayMaxSize(10) dislikes!: string[];
+  @ApiProperty() @IsArray() @IsString({each:true}) @ArrayMaxSize(10) @MaxLength(20,{each:true}) dislikes!: string[];
+  @ApiPropertyOptional({type:[String],description:'常买得到的食材；最多60项'}) @IsOptional() @IsArray() @IsString({each:true}) @ArrayMaxSize(60) @MaxLength(20,{each:true}) availableIngredients?: string[];
+  @ApiPropertyOptional({type:[String],description:'更喜欢的食材；用于排序'}) @IsOptional() @IsArray() @IsString({each:true}) @ArrayMaxSize(60) @MaxLength(20,{each:true}) preferredIngredients?: string[];
+  @ApiPropertyOptional({enum:['prefer','only'],description:'优先常买食材，或做饭只用已选食材'}) @IsOptional() @IsIn(['prefer','only']) ingredientMode?: 'prefer'|'only';
   @ApiProperty() @IsArray() @IsInt({each:true}) @Min(0,{each:true}) @Max(6,{each:true}) workoutDays!: number[];
 }
 export class PlanDto {

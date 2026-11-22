@@ -1057,6 +1057,28 @@
               "type": "string"
             }
           },
+          "availableIngredients": {
+            "description": "常买得到的食材；最多60项",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "preferredIngredients": {
+            "description": "更喜欢的食材；用于排序",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ingredientMode": {
+            "type": "string",
+            "enum": [
+              "prefer",
+              "only"
+            ],
+            "description": "优先常买食材，或做饭只用已选食材"
+          },
           "workoutDays": {
             "type": "array",
             "items": {
