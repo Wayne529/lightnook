@@ -2,7 +2,7 @@ import {readdirSync,writeFileSync,readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 const dir=resolve('apps/web/dist-offline');
-const files=['index.html',...readdirSync(resolve(dir,'assets')).map(f=>'assets/'+f)];
+const files=readdirSync(dir,{recursive:true,withFileTypes:true}).filter(entry=>entry.isFile()&&entry.name!=='sw.js').map(entry=>resolve(entry.parentPath,entry.name).slice(dir.length+1).replaceAll('\\','/')).sort();
 const hash=createHash('sha256');
 for(const file of files)hash.update(file).update(readFileSync(resolve(dir,file)));
 const version=hash.digest('hex').slice(0,12);
