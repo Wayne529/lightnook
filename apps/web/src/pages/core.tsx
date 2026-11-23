@@ -4,7 +4,7 @@ import {PlanSource} from '../plan-source';
 import {IngredientPreferences} from '../ingredient-preferences';
 import {ingredientPreferenceError,planPreferences} from '../../../api/src/domain';
 import {useEffect,useState} from 'react';
-import {Link,useNavigate,useParams,useSearchParams} from 'react-router-dom';
+import {Link,useNavigate,useLocation,useParams,useSearchParams} from 'react-router-dom';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
@@ -15,10 +15,10 @@ import {importBackup} from '../offline';
 import {api,send,initCsrf,localDate,addDays,weekStart,slots,allergies} from '../api';
 import {Page,PageFooter,Header,Brand,Button,Plate,Plant,Section,MealCard,Choice,Sheet,Loading,ErrorState,useMe,useAction,useToast} from '../ui';
 
-export function Welcome(){const navigate=useNavigate(),me=useMe(),toast=useToast();const [dev,setDev]=useState(false),[phone,setPhone]=useState(''),[code,setCode]=useState(''),[challenge,setChallenge]=useState(''),[login,setLogin]=useState(false);useEffect(()=>{initCsrf().then(r=>setDev(r.devAuth)).catch(()=>{});},[]);
- const begin=useAction(async()=>{if(!me.data)await send('/auth/dev-session',{});return api('/me');},u=>navigate(u.activePlan?'/':'/setup'));
+export function Welcome(){const navigate=useNavigate(),location=useLocation(),me=useMe(),toast=useToast();const requested=location.state?.from,returnTo=typeof requested==='string'&&/^\/grow(?:[/?]|$)/.test(requested)?requested:undefined;const [dev,setDev]=useState(false),[phone,setPhone]=useState(''),[code,setCode]=useState(''),[challenge,setChallenge]=useState(''),[login,setLogin]=useState(false);useEffect(()=>{initCsrf().then(r=>setDev(r.devAuth)).catch(()=>{});},[]);
+ const begin=useAction(async()=>{if(!me.data)await send('/auth/dev-session',{});return api('/me');},u=>navigate(returnTo||(u.activePlan?'/':'/setup')));
  const otp=useAction(()=>send('/auth/otp',{phone}),r=>{setChallenge(r.challengeId);toast('验证码已发送，请查看短信');});
- const signin=useAction(()=>send('/auth/sessions',{phone,code,challengeId:challenge}),()=>navigate('/'));
+ const signin=useAction(()=>send('/auth/sessions',{phone,code,challengeId:challenge}),()=>navigate(returnTo||'/'));
  return <Page className="welcome"><Header back={false}/><div className="content"><p className="eyebrow">LIGHTNOOK / ROOM FOR EVERYDAY</p><h1>轻盈，也给生活<br/>留一点余地。</h1><div className="welcome-art"><Plate/><Plant/></div><h2 className="center">吃好每一餐，记下每一步。</h2><p className="muted center">餐单、运动与日常，都按你的节奏来。</p>{dev&&<p className="demo-label">本机体验 · 餐单为功能示例，正式使用前需审核</p>}<PageFooter><Button busy={begin.busy} onClick={()=>dev||me.data?begin.run():setLogin(true)}>{me.data?'继续我的日常':dev?'开始本机体验':'定制我的第一周'}</Button></PageFooter><button className="text-button full" onClick={()=>isOffline()?toast("离线数据仅保存在当前浏览器，可在我的中备份"):switchMode(true)}>{isOffline()?"当前为离线模式 · 无服务器、无数据库":"不连接服务器，离线使用"}</button>{!isOffline()&&<button className="text-button full" onClick={()=>setLogin(true)}>手机号登录</button>}<p className="tiny center">继续即表示同意用户协议与隐私说明</p><button className="text-button full" onClick={()=>toast('仅保存你主动提交的计划与记录。私人照片和签卡通过鉴权访问，可在“我的”导出或删除数据。')}>查看隐私说明</button></div>{login&&<Sheet title="留住属于你的日常" onClose={()=>setLogin(false)}><label>手机号<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="请输入手机号"/></label><div className="inline"><input value={code} onChange={e=>setCode(e.target.value)} inputMode="numeric" placeholder="6 位验证码"/><Button secondary busy={otp.busy} onClick={()=>otp.run()}>获取验证码</Button></div><Button busy={signin.busy} onClick={()=>signin.run()}>登录</Button><p className="tiny">手机号登录需由部署方配置短信服务。本机体验不发送短信。</p></Sheet>}</Page>;
 }
 
